@@ -17,6 +17,8 @@ import java.io.{
   IOException
 }
 
+import java.nio.file.{Files, Paths}
+
 import org.apache.avro.{ Protocol, Schema }
 import org.apache.avro.compiler.specific.SpecificCompiler
 
@@ -55,26 +57,15 @@ object SpecificJavaTreehugger extends JavaTreehugger {
 	  }
 
     def deleteTemps(path: String) = {
-      val penultimateFile = new File(path.split('/').take(2).mkString("/"))
-      def getFiles(f: File): Set[File] = {
-        Option(f.listFiles)
-          .map(a => a.toSet)
-          .getOrElse(Set.empty)
-      }
-      def getRecursively(f: File): Set[File] = {
-        val files = getFiles(f)
-        val subDirectories = files.filter(path => path.isDirectory)
-        subDirectories.flatMap(getRecursively) ++ files + penultimateFile
-      }
-      def sortByDepth(f1: File, f2: File) = {
-        def countLevels(f: File) = f.getAbsolutePath.count(c => c == '/')
-        countLevels(f1) > countLevels(f2)
-      }
-      val filesToDelete = getRecursively(penultimateFile)
-      val sortedFilesToDelete = filesToDelete.toList.sortWith(sortByDepth)
-      sortedFilesToDelete.foreach(file => {
-        if (getFiles(file).isEmpty) file.deleteOnExit
-      })
+    	import scala.collection.JavaConverters._
+    	Files
+	      .walk(Paths.get(path))
+	      .iterator()
+	      .asScala
+	      .toList
+	      .reverse
+	      .map(_.toFile)
+	      .foreach(_.delete())
     }
 
     // Avro's SpecificCompiler only writes files, but we need a string
